@@ -1,0 +1,26 @@
+wget http://curl.haxx.se/download/curl-7.50.3.tar.gz
+tar zxvf curl-7.50.3.tar.gz
+cd curl-7.50.3
+./configure --prefix=/usr/local/curl --disable-shared --enable-static --without-libidn --without-ssl --without-librtmp --without-gnutls --without-nss --without-libssh2 --without-zlib --without-winidn --disable-ftp --disable-rtsp --disable-tftp --disable-ldap --disable-ldaps --disable-ipv6 --disable-telnet --disable-largefile --disable-smtp --disable-imap --disable-pop3
+make
+sudo make install
+
+vi a.c
+
+#include <curl/curl.h>
+
+int main() {
+
+printf("%s\n", curl_version());
+
+return 0;
+
+}
+
+curl-config --static-libs
+
+gcc a.c -static $(/usr/local/curl/bin/curl-config --static-libs --cflags)
+
+file a.out
+
+./a.out

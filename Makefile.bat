@@ -17,10 +17,9 @@
 
     set CC=cl
     set AR=lib
-    set LNK=link
 
 :compileflags
-    set CFLAGS= /c /MP /GS- /Qpar /GL /analyze- /W4 /Gy /Zc:wchar_t /Zi /Gm- /Ox /Zc:inline /fp:precise /D "WIN32" /D "NDEBUG" /D "_UNICODE" /D "UNICODE" /fp:except- /errorReport:none /GF /WX- /Zc:forScope /GR- /Gd /Oy /Oi /MT /EHsc /nologo /Fo"%GPATH%\\"
+    set CFLAGS= /c /MP /GS- /Qpar /GL /analyze- /W4 /Gy /Zc:wchar_t /Zi /Gm- /Ox /Zc:inline /fp:precise /D "WIN32" /D "NDEBUG" /D "_UNICODE" /D "UNICODE" /fp:except- /errorReport:none /GF /WX /Zc:forScope /GR- /Gd /Oy /Oi /MT /EHsc /nologo /Fo"%GPATH%\\"
 
     set MyCFLAGS= /I"%VPATH%\\lib" /I"%VPATH%\\src" /I"%VPATH%\\include" /wd4127 /D "_LIB" /D "CURL_STATICLIB" /D "BUILDING_LIBCURL" /D "USE_IPV6" /D "USE_WINDOWS_SSPI" /D "USE_SCHANNEL"
 
@@ -31,11 +30,12 @@
 
 :makeinclude
     set IncludePath=%MyPath%\\include
-
     if not "%1" == "" (
-        echo ==== ==== ==== ==== Prepare Include Folder and Files...
-        rd /S /Q "%IncludePath%"
-        mkdir "%IncludePath%\\curl"
+        echo ==== ==== ==== ==== Prepare include folder and files...
+
+        rd /S /Q "%IncludePath%" >nul
+        if exist "%IncludePath%" goto fail
+        mkdir "%IncludePath%\\curl" >nul
 
         copy "%VPATH%\\include\\curl\\*.h" "%IncludePath%\\curl" >nul
 
@@ -43,19 +43,20 @@
     )
 
 :start
-    echo ==== ==== ==== ==== Start compiling %PLAT%...
+    echo ==== ==== ==== ==== Prepare dest folder(%PLAT%)...
+
+    rd /S /Q "%GPATH%" >nul
+    if exist "%GPATH%" goto fail
+    mkdir "%GPATH%" >nul
 
     echo ==== ==== ==== ==== Prepare environment(%PLAT%)...
+
     cd /d %VCPath%
     if "%1" == "" (
         call vcvarsall.bat amd64 >nul
     ) else (
         call vcvarsall.bat x86 >nul
     )
-
-    echo ==== ==== ==== ==== Prepare dest folder(%PLAT%)...
-    if not exist "%GPATH%" mkdir %GPATH%
-    del /q "%GPATH%\\*.*"
 
     cd /d %VPATH%
 
@@ -72,7 +73,6 @@
 
 :done
     echo.
-
     endlocal
 
     if "%1" == "" (
@@ -82,7 +82,6 @@
     )
 
     echo done.
-
     goto end
 
 :compile_error
@@ -91,6 +90,10 @@
 
 :link_error
     echo !!!!!!!!Link error!!!!!!!!
+    goto end
+
+:fail
+    echo !!!!!!!!Fail!!!!!!!!
     goto end
 
 :end

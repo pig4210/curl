@@ -1,30 +1,28 @@
 ﻿# curl
 
-这里提供的[Makefile.bat](./Makefile.bat)，用于使用VS2017命令行编译Lua
+这里提供的[Makefile.bat](./Makefile.bat)，使用VS2017命令行编译项目
 
-如需要使用其它VS编译其它版本，请修改如下参考：
+如需要使用其它VS编译其它版本，请修改如下配置：
 
     set VCPATH=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build
-    set VPATH=%MyPath%\\curl-7.58.0
+    set VPATH=%MyPath%\\xxx-x.x.x
 
-由于各方面考虑，不采用官方提供的方法编译curl
+由于各方面考虑，不采用官方提供的方法编译
 
 ---- ---- ---- ----
 
 ## 官方使用VS编译curl的方法
 
-## 官方使用VS命令行编译curl
+- 官方使用VS命令行编译curl
 
-```
-rem 打开VC命令行(x64/x86)
-cd curl-x.x.x\winbuild
-nmake /f Makefile.vc mode=static VC=12
-rem 生成的文件处于curl-x.x.x\builds\
-```
+  1. 打开VC命令行(x64/x86)
+  2. 进入winbuild目录。`cd curl-x.x.x\winbuild`
+  3. 编译curl。`nmake /f Makefile.vc mode=static VC=12`
+  4. 生成的文件处于curl-x.x.x\builds\
 
-## 官方使用VS编译curl
+- 官方使用VS编译curl
 
-VS工程目录`curl-x.x.x/projects/Windows`，其下有不同版本的VS工程
+  VS工程目录`curl-x.x.x/projects/Windows`，其下有不同版本的VS工程
 
 ---- ---- ---- ----
 

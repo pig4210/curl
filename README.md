@@ -18,7 +18,7 @@
   1. 打开VC命令行(x64/x86)
   2. 进入winbuild目录。`cd curl-x.x.x\winbuild`
   3. 编译curl。`nmake /f Makefile.vc mode=static VC=12`
-  4. 生成的文件处于curl-x.x.x\builds\
+  4. 生成的文件处于`curl-x.x.x\builds\`
 
 - 官方使用VS编译curl
 

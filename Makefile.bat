@@ -12,7 +12,7 @@
     )
 
     set VCPATH=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build
-    set VPATH=%MyPath%\\curl-7.58.0
+    set VPATH=%MyPath%\\curl-7.59.0
     set GPATH=%MyPath%\\%PLAT%
 
     set CC=cl
@@ -69,7 +69,7 @@
     %AR% %ARFLAGS% /OUT:"%GPATH%\\curl.lib" "%GPATH%\\*.obj" >nul
     if not %errorlevel%==0 goto link_error
 
-    del "%GPATH%\\*.obj"
+    del "%GPATH%\\*.obj" >nul
 
 :done
     echo.

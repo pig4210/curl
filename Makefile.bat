@@ -2,17 +2,31 @@
 
 :begin
     setlocal
-    set MyPath=%~dp0
 
 :config
+    set VCPATH=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build
+
     if "%1" == "" (
       set PLAT=x64
     ) else (
       set PLAT=x86
     )
 
-    set VCPATH=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build
-    set VPATH=%MyPath%\\curl-7.59.0
+    cd /d "%~dp0"
+    for /d %%P in (.) do set ProjectName=%%~nP
+    if %ProjectName%=="" (
+        echo !!!!!!!! Empty project name !!!!!!!!
+        goto end
+    )
+
+    set MyPath=%CD%
+
+    for /d %%P in ("%MyPath%\\%ProjectName%*") do set VPATH=%%~fP
+    if %VPATH%=="" (
+        echo !!!!!!!! Src no found !!!!!!!!
+        goto end
+    )
+
     set GPATH=%MyPath%\\%PLAT%
 
     set CC=cl
@@ -33,11 +47,14 @@
     if not "%1" == "" (
         echo ==== ==== ==== ==== Prepare include folder and files...
 
-        rd /S /Q "%IncludePath%" >nul
-        if exist "%IncludePath%" goto fail
-        mkdir "%IncludePath%\\curl" >nul
+        rd /s /q "%IncludePath%" >nul
+        if exist "%IncludePath%" (
+            echo !!!!!!!! Can't clear include folder !!!!!!!!
+            goto end
+        )
+        mkdir "%IncludePath%\\%ProjectName%" >nul
 
-        copy "%VPATH%\\include\\curl\\*.h" "%IncludePath%\\curl" >nul
+        copy "%VPATH%\\include\\%ProjectName%\\*.h" "%IncludePath%\\%ProjectName%" >nul
 
         echo.
     )
@@ -45,20 +62,23 @@
 :start
     echo ==== ==== ==== ==== Prepare dest folder(%PLAT%)...
 
-    rd /S /Q "%GPATH%" >nul
-    if exist "%GPATH%" goto fail
+    rd /s /q "%GPATH%" >nul
+    if exist "%GPATH%" (
+        echo !!!!!!!! Can't clear dest folder !!!!!!!!
+        goto end
+    )
     mkdir "%GPATH%" >nul
 
     echo ==== ==== ==== ==== Prepare environment(%PLAT%)...
 
-    cd /d %VCPath%
+    cd /d "%VCPath%"
     if "%1" == "" (
         call vcvarsall.bat amd64 >nul
     ) else (
         call vcvarsall.bat x86 >nul
     )
 
-    cd /d %VPATH%
+    cd /d "%VPATH%"
 
 :lib
     echo ==== ==== ==== ==== Building LIB(%PLAT%)...
@@ -90,10 +110,6 @@
 
 :link_error
     echo !!!!!!!!Link error!!!!!!!!
-    goto end
-
-:fail
-    echo !!!!!!!!Fail!!!!!!!!
     goto end
 
 :end

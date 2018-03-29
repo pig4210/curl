@@ -1,23 +1,22 @@
 @echo off
 
-:begin
+::begin
     setlocal
-
-:config
+    pushd "%~dp0"
+    set SUF=^>nul
+    
+::baseconfig
     set VCPATH=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build
 
-    if "%1" == "" (
-      set PLAT=x64
-    ) else (
-      set PLAT=x86
-    )
-
-    cd /d "%~dp0"
     for /d %%P in (.) do set ProjectName=%%~nP
     if %ProjectName%=="" (
         echo !!!!!!!! Empty project name !!!!!!!!
         goto end
     )
+    echo ==== ==== ==== ==== Got project name [ %ProjectName% ]
+    setlocal enabledelayedexpansion
+    for %%I in (a b c d e f g h i j k l m n o p q r s t u v w x y z) do set ProjectName=!ProjectName:%%I=%%I!
+    setlocal disabledelayedexpansion
 
     set MyPath=%CD%
 
@@ -26,91 +25,116 @@
         echo !!!!!!!! Src no found !!!!!!!!
         goto end
     )
+    echo ==== ==== ==== ==== Got source folder [ %VPATH% ]
+    echo.
 
-    set GPATH=%MyPath%\\%PLAT%
-
+::biuldconfig
     set CC=cl
     set AR=lib
 
-:compileflags
-    set CFLAGS= /c /MP /GS- /Qpar /GL /analyze- /W4 /Gy /Zc:wchar_t /Zi /Gm- /Ox /Zc:inline /fp:precise /D "WIN32" /D "NDEBUG" /D "_UNICODE" /D "UNICODE" /fp:except- /errorReport:none /GF /WX /Zc:forScope /GR- /Gd /Oy /Oi /MT /EHsc /nologo /Fo"%GPATH%\\"
+    set CFLAGS=/c /MP /GS- /Qpar /GL /analyze- /W4 /Gy /Zc:wchar_t /Zi /Gm- /Ox /Zc:inline /fp:precise /D "WIN32" /D "NDEBUG" /D "_UNICODE" /D "UNICODE" /fp:except- /errorReport:none /GF /WX /Zc:forScope /GR- /Gd /Oy /Oi /MT /EHsc /nologo 
 
-    set MyCFLAGS= /I"%VPATH%\\lib" /I"%VPATH%\\src" /I"%VPATH%\\include" /wd4127 /D "_LIB" /D "CURL_STATICLIB" /D "BUILDING_LIBCURL" /D "USE_IPV6" /D "USE_WINDOWS_SSPI" /D "USE_SCHANNEL"
+    set ARFLAGS=/LTCG /ERRORREPORT:NONE /NOLOGO
 
-    if not "%1" == "" set MyCFLAGS=%MyCFLAGS% /D "_USING_V110_SDK71_"
-
-:arflags
-    set ARFLAGS= /LTCG "ws2_32.lib" "wldap32.lib" "advapi32.lib" "crypt32.lib" /MACHINE:%PLAT% /ERRORREPORT:NONE /NOLOGO
-
-:makeinclude
+::makeinclude
+    echo ==== ==== ==== ==== Prepare include folder and files...
     set IncludePath=%MyPath%\\include
-    if not "%1" == "" (
-        echo ==== ==== ==== ==== Prepare include folder and files...
 
-        rd /s /q "%IncludePath%" >nul
-        if exist "%IncludePath%" (
-            echo !!!!!!!! Can't clear include folder !!!!!!!!
-            goto end
-        )
-        mkdir "%IncludePath%\\%ProjectName%" >nul
-
-        copy "%VPATH%\\include\\%ProjectName%\\*.h" "%IncludePath%\\%ProjectName%" >nul
-
-        echo.
+    if exist "%IncludePath%" rd /s /q "%IncludePath%" %SUF%
+    if exist "%IncludePath%" (
+        echo !!!!!!!! Can't clear include folder !!!!!!!!
+        goto end
     )
 
-:start
+    set IncludePath=%MyPath%\\include\\%ProjectName%
+    set SIncludePath=%VPATH%\\include\\%ProjectName%
+
+    md "%IncludePath%" %SUF%
+
+    copy "%SIncludePath%\\*.h" "%IncludePath%" %SUF%
+
+    echo.
+
+::main
+    call :do x64
+    if not %errorlevel%==0 goto end
+    call :do x86
+    if not %errorlevel%==0 goto end
+
+:end
+    popd
+    endlocal
+    if %errorlevel%==0 echo done.
+    pause >nul
+    goto :eof
+
+:do
+    setlocal
+
+::localbuildconfig
+    set PLAT=%1
+    set GPATH=%MyPath%\\%PLAT%
+
+    set CFLAGS=%CFLAGS% /wd4127 /wd4006 /D "_LIB" /D "CURL_STATICLIB" /D "BUILDING_LIBCURL" /D "USE_IPV6" /D "USE_WINDOWS_SSPI" /D "USE_SCHANNEL"
+    if "%PLAT%" == "x86" set CFLAGS=%CFLAGS% /D "_USING_V110_SDK71_"
+
+    set ARFLAGS=%ARFLAGS% /MACHINE:%PLAT%
+
+::prepare
     echo ==== ==== ==== ==== Prepare dest folder(%PLAT%)...
 
-    rd /s /q "%GPATH%" >nul
+    if exist "%GPATH%" rd /s /q "%GPATH%" %SUF%
     if exist "%GPATH%" (
         echo !!!!!!!! Can't clear dest folder !!!!!!!!
         goto end
     )
-    mkdir "%GPATH%" >nul
+    md "%GPATH%" %SUF%
 
     echo ==== ==== ==== ==== Prepare environment(%PLAT%)...
 
     cd /d "%VCPath%"
-    if "%1" == "" (
-        call vcvarsall.bat amd64 >nul
+    if "%PLAT%" == "x64" (
+        call vcvarsall.bat amd64 %SUF%
     ) else (
-        call vcvarsall.bat x86 >nul
+        call vcvarsall.bat x86 %SUF%
     )
 
     cd /d "%VPATH%"
 
-:lib
+::lib
+    set CIN= /I"%VPATH%\\lib" /I"%VPATH%\\src" /I"%VPATH%\\include" "%VPATH%\\lib\\*.c" "%VPATH%\\lib\\vtls\\*.c" "%VPATH%\\lib\\vauth\\*.c" "%VPATH%\\src\\*.c"
+
+    set COUT= /Fo"%GPATH%\\" /Fd"%GPATH%\\%ProjectName%.pdb"
+
+    set ARIN= "%GPATH%\\*.obj" "ws2_32.lib" "wldap32.lib" "advapi32.lib" "crypt32.lib"
+
+    set AROUT= /OUT:"%GPATH%\\%ProjectName%.lib"
+
     echo ==== ==== ==== ==== Building LIB(%PLAT%)...
 
-    %CC% %CFLAGS% %MyCFLAGS% /Fd"%GPATH%\\curl.pdb" "%VPATH%\\lib\\*.c" "%VPATH%\\lib\\vtls\\*.c" "%VPATH%\\lib\\vauth\\*.c" "%VPATH%\\src\\*.c" >nul
+    if not defined SUF echo on
+    %CC% %CFLAGS% %COUT% %CIN% %SUF%
+    @echo off
     if not %errorlevel%==0 goto compile_error
 
-    %AR% %ARFLAGS% /OUT:"%GPATH%\\curl.lib" "%GPATH%\\*.obj" >nul
+    if not defined SUF echo on
+    %AR% %ARFLAGS% %AROUT% %ARIN% %SUF%
+    @echo off
     if not %errorlevel%==0 goto link_error
 
-    del "%GPATH%\\*.obj" >nul
+    del "%GPATH%\\*.obj" %SUF%
 
-:done
-    echo.
-    endlocal
-
-    if "%1" == "" (
-        cmd /C %~f0 x86
-    ) else (
-        exit /B 0
-    )
-
-    echo done.
-    goto end
+    goto done
 
 :compile_error
-    echo !!!!!!!!Compile error!!!!!!!!
-    goto end
+    echo !!!!!!!! Compile error !!!!!!!!
+    goto done
 
 :link_error
-    echo !!!!!!!!Link error!!!!!!!!
-    goto end
+    echo !!!!!!!! Link error !!!!!!!!
+    goto done
 
-:end
-    pause >nul
+:done
+    endlocal
+    echo.
+    exit /B %errorlevel%

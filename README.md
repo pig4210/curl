@@ -6,7 +6,8 @@
 
     set VCPATH=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build
 
-源代码目录自动定位，如需指定其它源代码目录，请修改如下代码的VPATH：
+源代码目录自动定位，如需指定其它源代码目录，请修改或替换如下代码的VPATH：
+
     for /d %%P in ("%MyPath%\\%ProjectName%*") do set VPATH=%%~fP
 
 由于各方面考虑，不采用官方提供的方法编译

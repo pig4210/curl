@@ -3,13 +3,13 @@
 ::begin
     setlocal
     pushd "%~dp0"
-    set SUF=^>nul
     
 ::baseconfig
     set VCPATH=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build
+    set MyPath=%CD%
 
     for /d %%P in (.) do set ProjectName=%%~nP
-    if %ProjectName%=="" (
+    if "%ProjectName%"=="" (
         echo !!!!!!!! Empty project name !!!!!!!!
         goto end
     )
@@ -18,10 +18,8 @@
     for %%I in (a b c d e f g h i j k l m n o p q r s t u v w x y z) do set ProjectName=!ProjectName:%%I=%%I!
     setlocal disabledelayedexpansion
 
-    set MyPath=%CD%
-
     for /d %%P in ("%MyPath%\\%ProjectName%*") do set VPATH=%%~fP
-    if %VPATH%=="" (
+    if "%VPATH%"=="" (
         echo !!!!!!!! Src no found !!!!!!!!
         goto end
     )
@@ -37,10 +35,10 @@
     set ARFLAGS=/LTCG /ERRORREPORT:NONE /NOLOGO
 
 ::makeinclude
-    echo ==== ==== ==== ==== Prepare include folder and files...
+    echo ==== ==== ==== ==== Prepare include folder ^& files...
     set IncludePath=%MyPath%\\include
 
-    if exist "%IncludePath%" rd /s /q "%IncludePath%" %SUF%
+    if exist "%IncludePath%" rd /s /q "%IncludePath%" >nul
     if exist "%IncludePath%" (
         echo !!!!!!!! Can't clear include folder !!!!!!!!
         goto end
@@ -49,92 +47,131 @@
     set IncludePath=%MyPath%\\include\\%ProjectName%
     set SIncludePath=%VPATH%\\include\\%ProjectName%
 
-    md "%IncludePath%" %SUF%
+    md "%IncludePath%" >nul
 
-    copy "%SIncludePath%\\*.h" "%IncludePath%" %SUF%
-
-    echo.
+    copy "%SIncludePath%\\*.h" "%IncludePath%" >nul
 
 ::main
-    call :do x64
-    if not %errorlevel%==0 goto end
-    call :do x86
-    if not %errorlevel%==0 goto end
+    echo.
+    echo.
+    %CC% >nul 2>&1
+    if %errorlevel%==0 (
+        echo ==== ==== ==== ==== Build %Platform% ^& processing ==== ==== ==== ==== 
+        echo.
+        call :do || goto end
+    ) else (
+        echo ==== ==== ==== ==== Build x64 ^& x86 by silence ==== ==== ==== ==== 
+        echo.
+        call :do x64 && call :do x86 || goto end
+    )
+
+    popd
+    endlocal
+    echo.
+    echo ==== ==== ==== ==== Done ==== ==== ==== ====
+    cl >nul 2>&1 || pause >nul
+    exit /B 0
 
 :end
     popd
     endlocal
-    if %errorlevel%==0 echo done.
-    pause >nul
-    goto :eof
+    echo.
+    echo ==== ==== ==== ==== Done ==== ==== ==== ====
+    cl >nul 2>&1 || pause >nul
+    exit /B 1
 
 :do
     setlocal
 
-::localbuildconfig
-    set PLAT=%1
+    if "%1"=="" (
+        set PLAT=%Platform%
+        set SUF=
+    ) else (
+        set PLAT=%1
+        set SUF=^>nul
+    )
+    if "%PLAT%"=="" (
+        echo !!!!!!!! Need arg with x64/x86 !!!!!!!!
+        goto done
+    )
     set GPATH=%MyPath%\\%PLAT%
 
-    set CFLAGS=%CFLAGS% /wd4127 /wd4006 /D "_LIB" /D "CURL_STATICLIB" /D "BUILDING_LIBCURL" /D "USE_IPV6" /D "USE_WINDOWS_SSPI" /D "USE_SCHANNEL"
+    echo.
+
+::prepare
+    if not "%1"=="" (
+        echo ==== ==== ==== ==== Prepare environment^(%PLAT%^)...
+        
+        cd /d "%VCPath%"
+        if "%PLAT%"=="x64" (
+            call vcvarsall.bat amd64 >nul
+        ) else (
+            call vcvarsall.bat x86 >nul
+        )
+    )
+
+    echo ==== ==== ==== ==== Prepare dest folder(%PLAT%)...
+
+    if exist "%GPATH%" rd /s /q "%GPATH%" >nul
+    if exist "%GPATH%" (
+        echo !!!!!!!! Can't clear dest folder !!!!!!!!
+        goto done
+    )
+    md "%GPATH%" >nul
+
+    echo.
+
+    cd /d "%VPATH%"
+
+::localbuildconfig
+    set CFLAGS=%CFLAGS% /D "_LIB" /D "CURL_STATICLIB" /D "BUILDING_LIBCURL" /D "USE_IPV6" /D "USE_WINDOWS_SSPI" /D "USE_SCHANNEL"
     if "%PLAT%" == "x86" set CFLAGS=%CFLAGS% /D "_USING_V110_SDK71_"
 
     set ARFLAGS=%ARFLAGS% /MACHINE:%PLAT%
 
-::prepare
-    echo ==== ==== ==== ==== Prepare dest folder(%PLAT%)...
-
-    if exist "%GPATH%" rd /s /q "%GPATH%" %SUF%
-    if exist "%GPATH%" (
-        echo !!!!!!!! Can't clear dest folder !!!!!!!!
-        goto end
-    )
-    md "%GPATH%" %SUF%
-
-    echo ==== ==== ==== ==== Prepare environment(%PLAT%)...
-
-    cd /d "%VCPath%"
-    if "%PLAT%" == "x64" (
-        call vcvarsall.bat amd64 %SUF%
-    ) else (
-        call vcvarsall.bat x86 %SUF%
-    )
-
-    cd /d "%VPATH%"
-
 ::lib
-    set CIN= /I"%VPATH%\\lib" /I"%VPATH%\\src" /I"%VPATH%\\include" "%VPATH%\\lib\\*.c" "%VPATH%\\lib\\vtls\\*.c" "%VPATH%\\lib\\vauth\\*.c" "%VPATH%\\src\\*.c"
+    set CIN=/I"%VPATH%\\lib" /I"%VPATH%\\src" /I"%VPATH%\\include" "%VPATH%\\lib\\*.c" "%VPATH%\\lib\\vtls\\*.c" "%VPATH%\\lib\\vauth\\*.c" "%VPATH%\\src\\*.c"
 
-    set COUT= /Fo"%GPATH%\\" /Fd"%GPATH%\\%ProjectName%.pdb"
+    set COUT=/Fo"%GPATH%\\" /Fd"%GPATH%\\%ProjectName%.pdb"
 
-    set ARIN= "%GPATH%\\*.obj" "ws2_32.lib" "wldap32.lib" "advapi32.lib" "crypt32.lib"
+    set ARIN="%GPATH%\\*.obj" "ws2_32.lib" "wldap32.lib" "advapi32.lib" "crypt32.lib"
 
-    set AROUT= /OUT:"%GPATH%\\%ProjectName%.lib"
+    set AROUT=/OUT:"%GPATH%\\%ProjectName%.lib"
 
     echo ==== ==== ==== ==== Building LIB(%PLAT%)...
 
-    if not defined SUF echo on
-    %CC% %CFLAGS% %COUT% %CIN% %SUF%
-    @echo off
-    if not %errorlevel%==0 goto compile_error
+    call :compile && call :ar || goto done
 
-    if not defined SUF echo on
-    %AR% %ARFLAGS% %AROUT% %ARIN% %SUF%
-    @echo off
-    if not %errorlevel%==0 goto link_error
+    del "%GPATH%\\*.obj" >nul
 
-    del "%GPATH%\\*.obj" %SUF%
-
-    goto done
-
-:compile_error
-    echo !!!!!!!! Compile error !!!!!!!!
-    goto done
-
-:link_error
-    echo !!!!!!!! Link error !!!!!!!!
-    goto done
+::ok
+    endlocal
+    echo.
+    exit /B 0
 
 :done
     endlocal
     echo.
-    exit /B %errorlevel%
+    exit /B 1
+
+:compile
+    if "%SUF%"=="" (
+        echo.
+        echo %CC% %CFLAGS% %MyCFlags% %COUT% %CIN%
+        echo.
+    )
+    %CC% %CFLAGS% %MyCFlags% %COUT% %CIN% %SUF% && exit /B 0
+    
+    echo !!!!!!!! Compile Error !!!!!!!!
+    exit /B 1
+
+:ar
+    if "%SUF%"=="" (
+        echo.
+        echo %AR% %ARFLAGS% %MyARFlags% %AROUT% %ARIN%
+        echo.
+    )
+    %AR% %ARFLAGS% %MyARFlags% %AROUT% %ARIN% %SUF% && exit /B 0
+
+    echo !!!!!!!! AR Error !!!!!!!!
+    exit /B 1

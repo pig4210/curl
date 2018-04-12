@@ -51,8 +51,9 @@
 
     copy "%SIncludePath%\\*.h" "%IncludePath%" >nul
 
-::main
     echo.
+
+::main
     echo.
     %CC% >nul 2>&1
     if %errorlevel%==0 (
@@ -62,7 +63,8 @@
     ) else (
         echo ==== ==== ==== ==== Build x64 ^& x86 by silence ==== ==== ==== ==== 
         echo.
-        call :do x64 && call :do x86 || goto end
+        call :do x64 || goto end
+        call :do x86 || goto end
     )
 
     popd
@@ -134,14 +136,20 @@
 
     set COUT=/Fo"%GPATH%\\" /Fd"%GPATH%\\%ProjectName%.pdb"
 
+    set MyCFlags=
+
     set ARIN="%GPATH%\\*.obj" "ws2_32.lib" "wldap32.lib" "advapi32.lib" "crypt32.lib"
 
     set AROUT=/OUT:"%GPATH%\\%ProjectName%.lib"
+    
+    set MyARFlags=
 
     echo ==== ==== ==== ==== Building LIB(%PLAT%)...
 
-    call :compile && call :ar || goto done
+    call :compile || goto done
+    call :ar || goto done
 
+::clear
     del "%GPATH%\\*.obj" >nul
 
 ::ok

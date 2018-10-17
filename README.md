@@ -1,66 +1,39 @@
 ﻿# curl
 
-这里提供的[Makefile.bat](./Makefile.bat)，使用VS2017命令行编译项目
+curl 提供了 Windows 下的编译支持，具体参考相关说明。
 
-如需使用其它VS，请修改如下配置：
-
-    set VCPATH=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build
-
-源代码目录自动定位，如需指定其它源代码目录，请修改或替换如下代码的VPATH：
-
-    for /d %%P in ("%MyPath%\\%ProjectName%*") do set VPATH=%%~fP
-
-由于各方面考虑，不采用官方提供的方法编译
-
-在已有VC命令行环境下运行脚本，只编译当前平台相符的库，并且输出编译信息
-
-无VC命令行环境时，脚本静默编译x64 & x86
+本工程是一个特化编译 For Windows 。
 
 ---- ---- ---- ----
 
-## 官方使用VS编译curl的方法
+## 特化编译
 
-- 官方使用命令行编译curl
+参考 curl 提供的 windows 下的编译手段，实现特化 Makefile 。
 
-  1. 打开VC命令行(x64/x86)
-  2. 进入winbuild目录。`cd curl-x.x.x\winbuild`
-  3. 编译curl。`nmake /f Makefile.vc mode=static VC=12`
-  4. 生成的文件处于`curl-x.x.x\builds\`
+`Makefile` 使用 GNU make 编译 curl 。
 
-- 官方使用VS编译curl
+`Makefile.bat` 检测当前环境，决定编译结果：
 
-  VS工程目录`curl-x.x.x/projects/Windows`，其下有不同版本的VS工程
+  - 在 对应的编译环境 下，编译对应平台版本，有编译回显。
+  - 无编译环境时，自行编译 x64 & x86 版本，无编译回显。
 
 ---- ---- ---- ----
 
-## unix编译curl的方法
+## NMake编译
 
-```
-wget http://curl.haxx.se/download/curl-7.50.3.tar.gz
-tar zxvf curl-7.50.3.tar.gz
-cd curl-7.50.3
-./configure --prefix=/usr/local/curl --disable-shared --enable-static --without-libidn --without-ssl --without-librtmp --without-gnutls --without-nss --without-libssh2 --without-zlib --without-winidn --disable-ftp --disable-rtsp --disable-tftp --disable-ldap --disable-ldaps --disable-ipv6 --disable-telnet --disable-largefile --disable-smtp --disable-imap --disable-pop3
-make
-sudo make install
+curl 支持 NMake 编译。生成结果：`./builds/*lib/libcurl.lib` 。
 
-vi a.c
-
-#include <curl/curl.h>
-
-int main() {
-
-printf("%s\n", curl_version());
-
-return 0;
-
-}
-
-curl-config --static-libs
-
-gcc a.c -static $(/usr/local/curl/bin/curl-config --static-libs --cflags)
-
-file a.out
-
-./a.out
+```cmd
+cd /d C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build
+call vcvarsall.bat amd64
+cd /d ./curl/curl-7.61.1/winbuild
+nmake /f Makefile.vc mode=static
 ```
 
+---- ---- ---- ----
+
+## VisualStudio编译
+
+curl 支持 VisualStudio 编译。
+
+目录 `./projects/Windows` ，其下有不同版本的 VS 工程。

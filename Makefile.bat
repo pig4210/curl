@@ -5,8 +5,9 @@
     pushd "%~dp0"
     
 ::baseconfig
-    set VCPATH=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build
+    set VCPath=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build
     set MyPath=%CD%
+    set MAKE=%MyPath%/../gnu/make/make.exe
 
     for /d %%P in (.) do set ProjectName=%%~nP
     if "%ProjectName%"=="" (
@@ -18,50 +19,35 @@
     for %%I in (a b c d e f g h i j k l m n o p q r s t u v w x y z) do set ProjectName=!ProjectName:%%I=%%I!
     setlocal disabledelayedexpansion
 
-    for /d %%P in ("%MyPath%\\%ProjectName%*") do set VPATH=%%~fP
-    if "%VPATH%"=="" (
+    for /d %%P in ("%MyPath%\\%ProjectName%*") do set SrcPath=%%~fP
+    if "%SrcPath%"=="" (
         echo !!!!!!!! Src no found !!!!!!!!
         goto end
     )
-    echo ==== ==== ==== ==== Got source folder [ %VPATH% ]
+    echo ==== ==== ==== ==== Got source folder [ %SrcPath% ]
     echo.
 
-::biuldconfig
-    set CC=cl
-    set AR=lib
-
-    set CFLAGS=/c /MP /GS- /Qpar /GL /analyze- /W4 /Gy /Zc:wchar_t /Zi /Gm- /Ox /Zc:inline /fp:precise /D "WIN32" /D "NDEBUG" /D "_UNICODE" /D "UNICODE" /fp:except- /errorReport:none /GF /WX /Zc:forScope /GR- /Gd /Oy /Oi /MT /EHsc /nologo 
-
-    set ARFLAGS=/LTCG /ERRORREPORT:NONE /NOLOGO
+    cl >nul 2>&1
+    if %errorlevel%==0 (
+        set SUF=
+    ) else (
+        set SUF=^>nul
+    )
 
 ::makeinclude
     echo ==== ==== ==== ==== Prepare include folder ^& files...
-    set IncludePath=%MyPath%\\include
 
-    if exist "%IncludePath%" rd /s /q "%IncludePath%" >nul
-    if exist "%IncludePath%" (
-        echo !!!!!!!! Can't clear include folder !!!!!!!!
-        goto end
-    )
-
-    set IncludePath=%MyPath%\\include\\%ProjectName%
-    set SIncludePath=%VPATH%\\include\\%ProjectName%
-
-    md "%IncludePath%" >nul
-
-    copy "%SIncludePath%\\*.h" "%IncludePath%" >nul
-
-    echo.
+    call :make inc || goto end
 
 ::main
     echo.
-    %CC% >nul 2>&1
+    cl >nul 2>&1
     if %errorlevel%==0 (
-        echo ==== ==== ==== ==== Build %Platform% ^& processing ==== ==== ==== ==== 
+        echo ==== ==== ==== ==== Build %Platform% ^& processing ==== ==== ==== ====
         echo.
         call :do || goto end
     ) else (
-        echo ==== ==== ==== ==== Build x64 ^& x86 by silence ==== ==== ==== ==== 
+        echo ==== ==== ==== ==== Build x64 ^& x86 by silence ==== ==== ==== ====
         echo.
         call :do x64 || goto end
         call :do x86 || goto end
@@ -96,7 +82,6 @@
         echo !!!!!!!! Need arg with x64/x86 !!!!!!!!
         goto done
     )
-    set GPATH=%MyPath%\\%PLAT%
 
     echo.
 
@@ -112,45 +97,11 @@
         )
     )
 
-    echo ==== ==== ==== ==== Prepare dest folder(%PLAT%)...
-
-    if exist "%GPATH%" rd /s /q "%GPATH%" >nul
-    if exist "%GPATH%" (
-        echo !!!!!!!! Can't clear dest folder !!!!!!!!
-        goto done
-    )
-    md "%GPATH%" >nul
-
-    echo.
-
-    cd /d "%VPATH%"
-
-::localbuildconfig
-    set CFLAGS=%CFLAGS% /D "_LIB" /D "CURL_STATICLIB" /D "BUILDING_LIBCURL" /D "USE_IPV6" /D "USE_WINDOWS_SSPI" /D "USE_SCHANNEL"
-    if "%PLAT%" == "x86" set CFLAGS=%CFLAGS% /D "_USING_V110_SDK71_"
-
-    set ARFLAGS=%ARFLAGS% /MACHINE:%PLAT%
-
-::lib
-    set CIN=/I"%VPATH%\\lib" /I"%VPATH%\\src" /I"%VPATH%\\include" "%VPATH%\\lib\\*.c" "%VPATH%\\lib\\vtls\\*.c" "%VPATH%\\lib\\vauth\\*.c" "%VPATH%\\src\\*.c"
-
-    set COUT=/Fo"%GPATH%\\" /Fd"%GPATH%\\%ProjectName%.pdb"
-
-    set MyCFlags=
-
-    set ARIN="%GPATH%\\*.obj" "ws2_32.lib" "wldap32.lib" "advapi32.lib" "crypt32.lib"
-
-    set AROUT=/OUT:"%GPATH%\\%ProjectName%.lib"
-    
-    set MyARFlags=
+    cd /d "%MyPath%"
 
     echo ==== ==== ==== ==== Building LIB(%PLAT%)...
 
-    call :compile || goto done
-    call :ar || goto done
-
-::clear
-    del "%GPATH%\\*.obj" >nul
+    call :make lib || goto done
 
 ::ok
     endlocal
@@ -162,24 +113,13 @@
     echo.
     exit /B 1
 
-:compile
+:make
     if "%SUF%"=="" (
         echo.
-        echo %CC% %CFLAGS% %MyCFlags% %COUT% %CIN%
+        echo %MAKE% SrcPath=%SrcPath% %1
         echo.
     )
-    %CC% %CFLAGS% %MyCFlags% %COUT% %CIN% %SUF% && exit /B 0
+    %MAKE% SRCPATH="%SrcPath%" %1 %SUF% && exit /B 0
     
-    echo !!!!!!!! Compile Error !!!!!!!!
-    exit /B 1
-
-:ar
-    if "%SUF%"=="" (
-        echo.
-        echo %AR% %ARFLAGS% %MyARFlags% %AROUT% %ARIN%
-        echo.
-    )
-    %AR% %ARFLAGS% %MyARFlags% %AROUT% %ARIN% %SUF% && exit /B 0
-
-    echo !!!!!!!! AR Error !!!!!!!!
+    echo !!!!!!!! Make Error !!!!!!!!
     exit /B 1

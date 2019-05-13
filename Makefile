@@ -38,7 +38,7 @@ LIBCURL_OBJS:=$(LIBCURL_OBJS:vtls/%=%)
 ## 直接 include am 会有语法错误
 pkginclude_HEADERS = \
 	curl.h curlver.h easy.h mprintf.h stdcheaders.h multi.h \
-	typecheck-gcc.h system.h
+	typecheck-gcc.h system.h urlapi.h
 ################################################
 
 

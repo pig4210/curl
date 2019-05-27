@@ -54,7 +54,7 @@ CFLAGS		+= /I"$(SRCPATH)/src" \
 	/I"$(SRCPATH)/lib" \
 	/I"$(SRCPATH)/include"
 CFLAGS		+= /Fd"$(DESTPATH)/"
-CFLAGS		+= /wd4127 /wd4090
+CFLAGS		+= /wd4127 /wd4090 /wd4101
 
 ifeq "$(Platform)" "x86"
 CFLAGS		+= /D_USING_V110_SDK71_

@@ -1,5 +1,4 @@
 ﻿# 这个 Makefile 用于使用 GNU make 在 Windows 编译 curl 静态库。
-# https://www.lua.org
 
 # 如果只是单纯的 clean ，则无需 环境 和 路径。
 ifneq "$(MAKECMDGOALS)" "clean"
@@ -23,15 +22,12 @@ endif
 
 
 .PHONY : all
-all : lib inc
+all : inc lib
 	@echo make done.
 
 ######## 以下参考 winbuild/Makefile.vc ########
 ## 改造不同目录。
 -include $(SRCPATH)/lib/Makefile.inc
-LIBCURL_OBJS:=$(CSOURCES:%.c=%.obj)
-LIBCURL_OBJS:=$(LIBCURL_OBJS:vauth/%=%)
-LIBCURL_OBJS:=$(LIBCURL_OBJS:vtls/%=%)
 ################################################
 
 ######## 以下参考 include/curl/Makefile.am ########
@@ -54,7 +50,7 @@ CFLAGS		+= /I"$(SRCPATH)/src" \
 	/I"$(SRCPATH)/lib" \
 	/I"$(SRCPATH)/include"
 CFLAGS		+= /Fd"$(DESTPATH)/"
-CFLAGS		+= /wd4127 /wd4090 /wd4101
+CFLAGS		+= /wd4127 /wd4090 /wd4101 /wd4244
 
 ifeq "$(Platform)" "x86"
 CFLAGS		+= /D_USING_V110_SDK71_
@@ -70,7 +66,7 @@ vpath %.c 	$(SRCPATH)/lib
 vpath %.h 	$(SRCPATH)/lib
 
 # 最终目标文件搜索路径
-vpath %.obj	$(DESTPATH)
+vpath %.o	$(DESTPATH)
 vpath %.lib $(DESTPATH)
 
 ######## INC
@@ -90,23 +86,39 @@ $(INCPATH)/%.h : $(SRCPATH)/include/curl/%.h | $(INCPATH)
 ## 不使用更为通用的 %.obj : %.c 。一是考虑到需要建立对应目录，二是考虑到增加头文件依赖。
 ## 由于 curl 本身没有严格的头文件依赖，cl 又没有 -MM 的功能，所以就统一依赖。而为了尽量减少依赖，则把不同目录区分开来。
 BASEH			:= $(pkginclude_HEADERS:%=$(SRCPATH)/include/curl/%)
-%.obj : %.c $(LIB_HFILES) $(BASEH) | $(DESTPATH)
+
+vauth/%.o : vauth/%.c $(LIB_VAUTH_HFILES) $(BASEH) | $(DESTPATH)/vauth
+	$(CC) $(CFLAGS) /Fo"$(DESTPATH)/vauth/$(@F)" "$<"
+
+vquic/%.o : vquic/%.c $(LIB_VQUIC_HFILES) $(BASEH) | $(DESTPATH)/vquic
+	$(CC) $(CFLAGS) /Fo"$(DESTPATH)/vquic/$(@F)" "$<"
+
+vssh/%.o : vssh/%.c $(BASEH) | $(DESTPATH)/vssh
+	$(CC) $(CFLAGS) /Fo"$(DESTPATH)/vssh/$(@F)" "$<"
+
+vtls/%.o : vtls/%.c $(LIB_VTLS_HFILES) $(BASEH) | $(DESTPATH)/vtls
+	$(CC) $(CFLAGS) /Fo"$(DESTPATH)/vtls/$(@F)" "$<"
+
+%.o : %.c $(LIB_HFILES) $(BASEH) | $(DESTPATH)
 	$(CC) $(CFLAGS) /Fo"$(DESTPATH)/$(@F)" "$<"
 
-%.obj : vauth/%.c $(LIB_VAUTH_HFILES) $(BASEH) | $(DESTPATH)
-	$(CC) $(CFLAGS) /Fo"$(DESTPATH)/$(@F)" "$<"
-	
-%.obj : vtls/%.c $(LIB_VTLS_HFILES) $(BASEH) | $(DESTPATH)
-	$(CC) $(CFLAGS) /Fo"$(DESTPATH)/$(@F)" "$<"
 
 $(DESTPATH) :
+	@mkdir "$@"
+$(DESTPATH)/vauth :
+	@mkdir "$@"
+$(DESTPATH)/vquic :
+	@mkdir "$@"
+$(DESTPATH)/vssh :
+	@mkdir "$@"
+$(DESTPATH)/vtls :
 	@mkdir "$@"
 
 ######## LIB
 .PHONY : lib
-lib : curl.lib
+lib : inc curl.lib
 
-curl.lib : $(LIBCURL_OBJS)
+curl.lib : $(CSOURCES:%.c=%.o)
 	$(AR) $(ARFLAGS) /OUT:"$(DESTPATH)/$(@F)" $^
 
 ######## CLEAN

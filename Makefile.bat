@@ -34,11 +34,6 @@
         set SUF=^>nul
     )
 
-::makeinclude
-    echo ==== ==== ==== ==== Prepare include folder ^& files...
-
-    call :make inc || goto end
-
 ::main
     echo.
     cl >nul 2>&1
@@ -101,7 +96,7 @@
 
     echo ==== ==== ==== ==== Building LIB(%PLAT%)...
 
-    call :make lib || goto done
+    call :make || goto done
 
 ::ok
     endlocal
